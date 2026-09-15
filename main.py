@@ -1,6 +1,7 @@
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # HELPER FUNCTIONS AND IMPORTS
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+from decks import Deck
 from cards import Card
 
 
@@ -9,10 +10,13 @@ from cards import Card
 # MAIN FUNCTION DEFINITION
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def main():
-    testCard = Card("Ace", "Spades")
-    print(testCard)
-    testCard2 = Card()
-    print(testCard2)
+    testDeck = Deck()
+    print(testDeck)
+    print("")
+    print(" ~~~ ")
+    print("")
+    testDeck.shuffle()
+    print(testDeck)
 
 
 
