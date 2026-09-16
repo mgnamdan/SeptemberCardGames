@@ -6,8 +6,9 @@ class CompBlackjackPlayer:
 
     def __init__(self, name):
         self.name = name
-        self.hand = []
-        self.score = 0
+        self.hand = {1: []}
+        self.hand.keys()
+        self.scores = {1: 0}
 
 
     def __repr__(self):
@@ -28,12 +29,12 @@ class CompBlackjackPlayer:
             return True
 
 
-    def drawCard(self):
-        pass
+    def drawCard(self, toGet):
+        self.hand.append(toGet)
 
 
-    def discardCard(self):
-        pass
+    def discardCard(self, idx=0):
+        return self.hand.pop(idx)
 
 
     def showHand(self):
