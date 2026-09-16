@@ -1,5 +1,9 @@
 class CompBlackjackPlayer:
 
+    CARDVALUES = {"Two": 2, "Three": 3, "Four": 4, "Five": 5, "Six": 6, "Seven": 7, "Eight": 8,
+                  "Nine": 9, "Ten": 10, "Jack": 10, "Queen": 10, "King": 10, "Ace": 11}
+
+
     def __init__(self, name):
         self.name = name
         self.hand = []
@@ -7,7 +11,7 @@ class CompBlackjackPlayer:
 
 
     def __repr__(self):
-        pass
+        return self.name
 
 
     def __eq__(self, other):
@@ -36,13 +40,17 @@ class CompBlackjackPlayer:
         print("")
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         print("")
-        print(f"             {self.name}'S HAND")
+        print(f"             {self.name.upper()}'S HAND")
         print("")
-        print("             1. ??? of ???")
-        for idx in range(1, len(self.hand)):
-            print(f"             {idx + 1} {self.hand[idx].rank} of {self.hand[idx].suit}")
+        if len(self.hand) == 0:
+            print("           No cards in hand!")
+        else:
+            print("             1. ??? of ???")
+            for idx in range(1, len(self.hand)):
+                print(f"             {idx + 1} {str(self.hand[idx])}")
         print("")
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("")
 
 
     def calcScore(self):
