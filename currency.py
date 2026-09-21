@@ -120,7 +120,7 @@ class Currency:
         pass
 
 
-    def __itruediv__(self, dividend):
+    def __itruediv__(self):
         # This function handles what happens if the currency object is "divided" by something "in place", whatever that means to you; it 
         # should take in at least one other parameter. This function should return something to where it's called.
         #
@@ -129,7 +129,7 @@ class Currency:
         pass
 
 
-    def __floordiv__(self, dividend):
+    def __floordiv__(self):
         # This function handles what happens if the currency object is "divided" by something using floor division, whatever that means to you;
         # Traditional floor division returns the nearest integer, rounded down, after performing division. This function should take in 
         # at least one other parameter and should return something to where it's called.
