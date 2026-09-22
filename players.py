@@ -7,7 +7,6 @@ class CompBlackjackPlayer:
     def __init__(self, name):
         self.name = name
         self.hand = {1: []}
-        self.hand.keys()
         self.scores = {1: 0}
 
 
@@ -20,47 +19,90 @@ class CompBlackjackPlayer:
             return False
         if self.name != other.name:
             return False
-        if len(self.hand) != len(other.hand):
+        if len(self.hand.keys()) != len(other.hand.keys()):
             return False
         else:
-            for idx in range(len(self.hand)):
-                if self.hand[idx] != other.hand[idx]:
+            for key in self.hand.keys():
+                if len(self.hand[key]) != len(other.hand.key[key]):
                     return False
+                else:
+                    for idx in range(len(self.hand[key])):
+                        if self.hand[key][idx] != self.hand[key][idx]:
+                            return False
             return True
 
 
-    def drawCard(self, toGet):
-        self.hand.append(toGet)
+
+    def drawCard(self, toGet, handNum=1):
+        self.hand[handNum].append(toGet)
 
 
-    def discardCard(self, idx=0):
-        return self.hand.pop(idx)
+    def discardCard(self, idx=0, handNum=1):
+        return self.hand[handNum].pop(idx)
 
 
-    def showHand(self):
+    def showHand(self, handNum=1):
         print("")
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         print("")
         print(f"             {self.name.upper()}'S HAND")
         print("")
-        if len(self.hand) == 0:
+        if len(self.hand[handNum]) == 0:
             print("           No cards in hand!")
         else:
             print("             1. ??? of ???")
-            for idx in range(1, len(self.hand)):
-                print(f"             {idx + 1} {str(self.hand[idx])}")
+            for idx in range(1, len(self.hand[handNum])):
+                print(f"             {idx + 1}. {str(self.hand[handNum][idx])}")
         print("")
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         print("")
 
 
-    def calcScore(self):
-        pass
+    def calcScore(self, handNum=1):
+        rawScore = 0
+        aces = 0
+        for card in self.hand[handNum]:
+            rawScore += self.CARDVALUES[card.rank]
+            if card.rank == "Ace":
+                aces += 1
+
+        while rawScore > 21 and aces > 0:
+            rawScore -= 10
+            aces -= 1
+
+        self.scores[handNum] = rawScore
 
 
-    def giveScore(self):
-        return self.score
+    def giveScore(self, handNum=1):
+        return self.scores[handNum]
+
+
+    def makeChoice(self, handNum=1):
+        self.calcScore(handNum)
+        if self.scores[handNum] >= 17:
+            return "stay"
+        else:
+            return "hit"
+
+
+
+class HumBlackjackPlayer(CompBlackjackPlayer):
+
+    def showHand(self, handNum=1):
+        print("")
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("")
+        print(f"             {self.name.upper()}'S HAND")
+        print("")
+        if len(self.hand[handNum]) == 0:
+            print("           No cards in hand!")
+        else:
+            for idx in range(len(self.hand[handNum])):
+                print(f"             {idx + 1}. {str(self.hand[handNum][idx])}")
+        print("")
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("")
 
 
     def makeChoice(self):
-        pass
+        return input(" --> ")

@@ -3,6 +3,7 @@
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 from decks import Deck
 from cards import Card
+from players import CompBlackjackPlayer
 
 
 
@@ -11,12 +12,29 @@ from cards import Card
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def main():
     testDeck = Deck()
-    print(testDeck)
+    aceOne = Card("Ace", "Clubs")
+    aceTwo = Card("Ace", "Spades")
+    aceThree = Card("Ace", "Hearts")
+    player = CompBlackjackPlayer("Danny")
+
+    player.drawCard(testDeck.draw())
+    player.drawCard(testDeck.draw())
+
     print("")
-    print(" ~~~ ")
+    print(f"{player.hand}")
     print("")
-    testDeck.shuffle()
-    print(testDeck)
+
+    player.showHand()
+
+    player.drawCard(aceOne)
+    player.drawCard(aceTwo)
+    player.drawCard(aceThree)
+
+    player.showHand()
+
+    player.calcScore()
+    print(player.giveScore())
+    print(player.makeChoice())
 
 
 
