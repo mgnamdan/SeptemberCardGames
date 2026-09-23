@@ -14,6 +14,4 @@ class Card:
             return False
         if self.rank != other.rank:
             return False
-        if self.suit != other.suit:
-            return False
         return True

@@ -78,8 +78,10 @@ class CompBlackjackPlayer:
 
 
     def makeChoice(self, handNum=1):
+        if self.hand[handNum][0] == self.hand[handNum][0]:
+            return "split"
         self.calcScore(handNum)
-        if self.scores[handNum] >= 17:
+        if self.scores[handNum] >= 17 or len(self.hand[handNum]) == 5:
             return "stay"
         else:
             return "hit"
@@ -104,5 +106,9 @@ class HumBlackjackPlayer(CompBlackjackPlayer):
         print("")
 
 
-    def makeChoice(self):
-        return input(" --> ")
+    def makeChoice(self, handNum=1):
+        self.calcScore(handNum)
+        if self.score[handNum] >= 21 or len(self.hand[handNum]) == 5:
+            return "stay"
+        else:
+            return input(" --> ")

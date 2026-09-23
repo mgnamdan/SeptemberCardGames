@@ -1,40 +1,35 @@
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # HELPER FUNCTIONS AND IMPORTS
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-from decks import Deck
-from cards import Card
-from players import CompBlackjackPlayer
-
-
+from managers import BlackjackManager
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # MAIN FUNCTION DEFINITION
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def main():
-    testDeck = Deck()
-    aceOne = Card("Ace", "Clubs")
-    aceTwo = Card("Ace", "Spades")
-    aceThree = Card("Ace", "Hearts")
-    player = CompBlackjackPlayer("Danny")
+    appOn = True
+    blackjack = BlackjackManager()
 
-    player.drawCard(testDeck.draw())
-    player.drawCard(testDeck.draw())
+    while appOn:
+        print("")
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("")
+        print("              GAMES MENU")
+        print("")
+        print("             1. Blackjack")
+        print("")
+        print("              Q -> QUIT")
+        print("")
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("")
+        playerChoice = input(" --> ")
 
-    print("")
-    print(f"{player.hand}")
-    print("")
-
-    player.showHand()
-
-    player.drawCard(aceOne)
-    player.drawCard(aceTwo)
-    player.drawCard(aceThree)
-
-    player.showHand()
-
-    player.calcScore()
-    print(player.giveScore())
-    print(player.makeChoice())
+        if playerChoice == "1":
+            blackjack.playGame()
+        elif playerChoice == "Q":
+            appOn = False
+        else:
+            print("Invalid option!")        
 
 
 
