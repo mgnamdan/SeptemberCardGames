@@ -25,7 +25,9 @@ def main():
         playerChoice = input(" --> ")
 
         if playerChoice == "1":
-            blackjack.playGame()
+            playingBlackjack = True
+            while playingBlackjack:
+                playingBlackjack = blackjack.playGame()
         elif playerChoice == "Q":
             appOn = False
         else:
