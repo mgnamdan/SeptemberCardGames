@@ -213,7 +213,7 @@ class GoFishManager:
 
     def manageTurn(self):
         pass
-    
+
 
     def determineWinner(self):
         pass
@@ -225,5 +225,3 @@ class GoFishManager:
 
     def playGame(self):
         pass
-
-

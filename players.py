@@ -1,3 +1,5 @@
+import random
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
@@ -138,39 +140,107 @@ class HumBlackjackPlayer(CompBlackjackPlayer):
 
 class CompGoFishPlayer:
 
-    def __init__(self):
-        pass
+    def __init__(self, name):
+        self.name = name
+        self.hand = {"Two": [],
+                     "Three": [],
+                     "Four": [],
+                     "Five": [],
+                     "Six": [],
+                     "Seven": [],
+                     "Eight": [],
+                     "Nine": [],
+                     "Ten": [],
+                     "Jack": [],
+                     "Queen": [],
+                     "King": [],
+                     "Ace": []}
+        self.sets = {}
+
 
     def __repr__(self):
-        pass
+        return self.name
 
-    def __eq__(self):
-        pass
 
-    def drawCard(self):
-        pass
+    def drawCard(self, goCard):
+        cardRank = goCard.rank
+        self.hand[cardRank].append(goCard)
 
-    def goFish(self):
-        pass
 
-    def giveSet(self):
-        pass
+    def goFish(self, deckSize):
+        choice = random.randint(1, 3)
+        if choice == 1:
+            return 0
+        elif choice == 2:
+            return (deckSize // 2) - 1
+        else:
+            return deckSize - 1
 
-    def calcScore(self):
-        pass
 
-    def giveScore(self):
-        pass
+    def giveSet(self, cardRank):
+        toGive = self.hand[cardRank]
+        self.hand[cardRank] = []
+        return toGive
+
 
     def makeChoice(self):
         pass
+
+
+    def showMatches(self):
+        print("")
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("")
+        print(f"           {self.name.upper()}'S MATCHES")
+        print("")
+        if len(self.sets.keys()) == 0:
+            print("           No matching sets!")
+        else:
+            for rank in self.sets.keys():
+                print(f"             {rank}s: {self.sets[rank]}")
+        print("")
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("")
+
+
+
+
 
 
 
 class HumGoFishPlayer(CompGoFishPlayer):
 
-    def goFish(self):
-        pass
+    def goFish(self, deckSize):
+        validChoice = False
+        while not validChoice:
+            mid = (deckSize // 2) - 1
+            last = deckSize - 1
 
-    def makeChoice(self):
+            print("")
+            print(f"Would you like to draw from the top, center, or bottom of deck?")
+            playerChoice = input(" --> ").lower()
+
+            if playerChoice in ["top", "1", "beginning", "default"]:
+                choiceIdx = 0
+                validChoice = True
+            elif playerChoice in ["center", "mid", "middle"]:
+                choiceIdx = mid
+                validChoice = True
+            elif playerChoice in ["bottom", "last", "deep sea"]:
+                choiceIdx = last
+                validChoice = True
+            else:
+                print("You can't fish here! Cast a line somewhere else!")
+
+        return choiceIdx
+
+
+    def makeChoice(self, otherPlayers):
+        validChoice = False
+        while not validChoice:
+            self.showHand()
+            print("")
+            print("")
+
+    def showHand(self):
         pass
