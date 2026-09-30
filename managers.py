@@ -3,6 +3,18 @@ from players import CompBlackjackPlayer, HumBlackjackPlayer
 from decks import Deck
 
 
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
+#
+#                       BLACKJACK MANAGER
+#
+#
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
 class BlackjackManager:
 
     COMPNAMES = ["Alex", "Ben", "Claire", "Danny", "Emily", "Felix", "Grace", "Henry", "Isabella", "Jack", "Kayla", "Liam", "Morgan",
@@ -107,8 +119,7 @@ class BlackjackManager:
                         else:
                             message += f", {winners[idx]}"
                     print("")
-                    print(message)
-                        
+                    print(message)               
 
 
     def promptNextGame(self):
@@ -172,3 +183,47 @@ class BlackjackManager:
         self.determineWinner()
 
         return self.promptNextGame()
+
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
+#
+#                       GO FISH MANAGER
+#
+#
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+class GoFishManager:
+
+    COMPNAMES = ["Alex", "Ben", "Claire", "Danny", "Emily", "Felix", "Grace", "Henry", "Isabella", "Jack", "Kayla", "Liam", "Morgan",
+                 "Nathan", "Olivia", "Pat", "Quinn", "Ryan", "Sophie", "Taylor", "Uma", "Victor", "Willow", "Xavier", "Yasmine", "Zach"]
+
+
+    def __init__(self):
+        pass
+
+
+    def resetGame(self):
+        pass
+
+
+    def manageTurn(self):
+        pass
+    
+
+    def determineWinner(self):
+        pass
+
+
+    def promptNextGame(self):
+        pass
+
+
+    def playGame(self):
+        pass
+
+

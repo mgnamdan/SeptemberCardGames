@@ -1,3 +1,14 @@
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
+#
+#                       BLACKJACK PLAYER CLASSES
+#
+#
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
 class CompBlackjackPlayer:
 
     CARDVALUES = {"Two": 2, "Three": 3, "Four": 4, "Five": 5, "Six": 6, "Seven": 7, "Eight": 8,
@@ -112,3 +123,54 @@ class HumBlackjackPlayer(CompBlackjackPlayer):
             return "stay"
         else:
             return input(" --> ").lower()
+
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
+#
+#                       GO FISH PLAYER CLASSES
+#
+#
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class CompGoFishPlayer:
+
+    def __init__(self):
+        pass
+
+    def __repr__(self):
+        pass
+
+    def __eq__(self):
+        pass
+
+    def drawCard(self):
+        pass
+
+    def goFish(self):
+        pass
+
+    def giveSet(self):
+        pass
+
+    def calcScore(self):
+        pass
+
+    def giveScore(self):
+        pass
+
+    def makeChoice(self):
+        pass
+
+
+
+class HumGoFishPlayer(CompGoFishPlayer):
+
+    def goFish(self):
+        pass
+
+    def makeChoice(self):
+        pass
