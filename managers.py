@@ -204,6 +204,7 @@ class GoFishManager:
 
 
     def __init__(self):
+        # Log gameplay - who asked who for what, send to computer for choices
         pass
 
 
