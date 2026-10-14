@@ -140,7 +140,14 @@ class HumBlackjackPlayer(CompBlackjackPlayer):
 
 class CompGoFishPlayer:
 
-    def __init__(self, name):
+    # Number of remembered public events, and chance of ignoring that memory.
+    DIFFICULTIES = {"easy": (4, 0.45), "medium": (12, 0.20), "hard": (30, 0.08)}
+
+    def __init__(self, name, difficulty="medium"):
+        difficulty = difficulty.strip().lower()
+        if difficulty not in self.DIFFICULTIES:
+            raise ValueError("Difficulty must be easy, medium, or hard.")
+        self.difficulty = difficulty
         self.name = name
         self.hand = {"Two": [],
                      "Three": [],
@@ -168,13 +175,9 @@ class CompGoFishPlayer:
 
 
     def goFish(self, deckSize):
-        choice = random.randint(1, 3)
-        if choice == 1:
-            return 0
-        elif choice == 2:
-            return (deckSize // 2) - 1
-        else:
-            return deckSize - 1
+        if deckSize <= 0:
+            raise ValueError("Cannot fish from an empty deck.")
+        return random.choice([0, (deckSize - 1) // 2, deckSize - 1])
 
 
     def giveSet(self, cardRank):
@@ -183,8 +186,61 @@ class CompGoFishPlayer:
         return toGive
 
 
-    def makeChoice(self):
-        pass
+    def collectSets(self):
+        """Move books of four out of the hand and return their ranks."""
+        completed = []
+        for rank, cards in self.hand.items():
+            if len(cards) == 4:
+                self.sets[rank] = self.giveSet(rank)
+                completed.append(rank)
+        return completed
+
+    def hasCards(self):
+        return any(self.hand.values())
+
+    def makeChoice(self, otherPlayers, gameLog=None):
+        """Return [rank, opponent name], using only this hand and public events.
+
+        Asking reveals a rank in the asker's hand. Transfers and books supersede
+        older evidence. A private draw may invalidate a previous absence, but
+        its rank is never available to this player.
+        """
+        ranks = [rank for rank, cards in self.hand.items() if cards]
+        opponents = [name for name in otherPlayers if name != self.name]
+        choices = [(rank, name) for rank in ranks for name in opponents]
+        if not choices:
+            raise ValueError("A choice requires cards and an eligible opponent.")
+
+        memoryLength, mistakeChance = self.DIFFICULTIES[self.difficulty]
+        knowledge = {}
+        for event in (gameLog or [])[-memoryLength:]:
+            asker = event["asker"]
+            if event["type"] == "ask":
+                rank, target = event["rank"], event["target"]
+                knowledge[asker, rank] = True
+                knowledge[target, rank] = False
+                if event["drawnMatch"]:
+                    knowledge[asker, rank] = True
+            if event["drew"]:
+                # Unknown draws can undo negative evidence, not reveal a rank.
+                knowledge = {key: value for key, value in knowledge.items()
+                             if key[0] != asker or value}
+            for rank in event["books"]:
+                for name in [self.name] + opponents:
+                    knowledge[name, rank] = False
+
+        if random.random() < mistakeChance:
+            return list(random.choice(choices))
+
+        def score(choice):
+            rank, name = choice
+            evidence = knowledge.get((name, rank))
+            return (2 if evidence is True else 0 if evidence is False else 1,
+                    len(self.hand[rank]))
+
+        bestScore = max(map(score, choices))
+        return list(random.choice([choice for choice in choices
+                                   if score(choice) == bestScore]))
 
 
     def showMatches(self):
@@ -211,14 +267,16 @@ class CompGoFishPlayer:
 class HumGoFishPlayer(CompGoFishPlayer):
 
     def goFish(self, deckSize):
+        if deckSize <= 0:
+            raise ValueError("Cannot fish from an empty deck.")
         validChoice = False
         while not validChoice:
-            mid = (deckSize // 2) - 1
+            mid = (deckSize - 1) // 2
             last = deckSize - 1
 
             print("")
-            print(f"Would you like to draw from the top, center, or bottom of deck?")
-            playerChoice = input(" --> ").lower()
+            print("Would you like to draw from the top, center, or bottom of deck?\n")
+            playerChoice = input(" --> ").strip().lower()
 
             if playerChoice in ["top", "1", "beginning", "default"]:
                 choiceIdx = 0
@@ -230,7 +288,7 @@ class HumGoFishPlayer(CompGoFishPlayer):
                 choiceIdx = last
                 validChoice = True
             else:
-                print("You can't fish here! Cast a line somewhere else!")
+                print("You can't fish here! Cast a line somewhere else!\n")
 
         return choiceIdx
 
@@ -239,8 +297,8 @@ class HumGoFishPlayer(CompGoFishPlayer):
         validCardChoice = False
         while not validCardChoice:
             self.showHand()
-            print("Choose a card to ask for:")
-            cardChoice = input(" --> ").lower().capitalize()
+            print("Choose a card to ask for:\n")
+            cardChoice = input(" --> ").strip().capitalize()
 
             validCards = []
             for rank in self.hand.keys():
@@ -250,19 +308,21 @@ class HumGoFishPlayer(CompGoFishPlayer):
             if cardChoice in validCards:
                 validCardChoice = True
             else:
-                print("You don't have any of that card! Pick again!")
+                print("You don't have any of that card! Pick again!\n")
 
 
         validPlayerChoice = False
         while not validPlayerChoice:
-            print(otherPlayers)
-            print("Choose a player to ask:")
-            playerChoice = input(" --> ").lower().capitalize()
+            print(otherPlayers, end="\n\n")
+            print("Choose a player to ask:\n")
+            enteredName = input(" --> ").strip().casefold()
+            playerChoice = next((name for name in otherPlayers
+                                 if name.casefold() == enteredName), None)
 
             if playerChoice in otherPlayers:
                 validPlayerChoice = True
             else:
-                print(f"There's nobody here named {playerChoice}! Pick again!")
+                print("Choose one of the listed players! Pick again!\n")
 
         return [cardChoice, playerChoice]
 
@@ -275,7 +335,7 @@ class HumGoFishPlayer(CompGoFishPlayer):
         print("")
         for rank in self.hand.keys():
             if len(self.hand[rank]) > 0:
-                print(f"            {rank}: {len(self.hand[rank])}")
+                print(f"            {rank}: {len(self.hand[rank])}\n")
         print("")
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         print("")

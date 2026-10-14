@@ -1,7 +1,7 @@
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # HELPER FUNCTIONS AND IMPORTS
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-from managers import BlackjackManager
+from managers import BlackjackManager, GoFishManager
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # MAIN FUNCTION DEFINITION
@@ -9,6 +9,7 @@ from managers import BlackjackManager
 def main():
     appOn = True
     blackjack = BlackjackManager()
+    goFish = GoFishManager()
 
     while appOn:
         print("")
@@ -17,17 +18,22 @@ def main():
         print("              GAMES MENU")
         print("")
         print("             1. Blackjack")
+        print("             2. Go Fish")
         print("")
         print("              Q -> QUIT")
         print("")
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         print("")
-        playerChoice = input(" --> ")
+        playerChoice = input(" --> ").strip().upper()
 
         if playerChoice == "1":
             playingBlackjack = True
             while playingBlackjack:
                 playingBlackjack = blackjack.playGame()
+        elif playerChoice == "2":
+            playingGoFish = True
+            while playingGoFish:
+                playingGoFish = goFish.playGame()
         elif playerChoice == "Q":
             appOn = False
         else:
@@ -38,4 +44,5 @@ def main():
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # MAIN FUNCTION CALL
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-main()
+if __name__ == "__main__":
+    main()

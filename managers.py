@@ -1,5 +1,6 @@
 import random
-from players import CompBlackjackPlayer, HumBlackjackPlayer
+from players import (CompBlackjackPlayer, HumBlackjackPlayer,
+                     CompGoFishPlayer, HumGoFishPlayer)
 from decks import Deck
 
 
@@ -204,25 +205,156 @@ class GoFishManager:
 
 
     def __init__(self):
-        # Log gameplay - who asked who for what, send to computer for choices
-        pass
+        self.players = []
+        self.deck = Deck()
+        self.gameLog = []
 
 
-    def resetGame(self):
-        pass
+    def resetGame(self, playerName, numComps=None, difficulty=None):
+        """Start a fresh round; optional settings also allow noninteractive setup."""
+        if numComps is None:
+            while True:
+                try:
+                    numComps = int(input("How many computers? (1-4)\n\n --> "))
+                    if 1 <= numComps <= 4:
+                        break
+                except ValueError:
+                    pass
+                print("Enter a number from 1 to 4.\n")
+        if not isinstance(numComps, int) or not 1 <= numComps <= 4:
+            raise ValueError("Choose between 1 and 4 computers.")
+
+        if difficulty is None:
+            while True:
+                difficulty = input("Computer difficulty (easy/medium/hard):\n\n --> ").strip().lower()
+                if difficulty in CompGoFishPlayer.DIFFICULTIES:
+                    break
+                print("Choose easy, medium, or hard.\n")
+        difficulty = difficulty.strip().lower()
+        if difficulty not in CompGoFishPlayer.DIFFICULTIES:
+            raise ValueError("Difficulty must be easy, medium, or hard.")
+
+        playerName = playerName.strip() or "Player"
+        names = [name for name in self.COMPNAMES
+                 if name.casefold() != playerName.casefold()]
+        self.players = [HumGoFishPlayer(playerName)]
+        self.players.extend(CompGoFishPlayer(name, difficulty)
+                            for name in random.sample(names, numComps))
+        self.deck.reset()
+        self.gameLog = []
+        handSize = 7 if len(self.players) == 2 else 5
+        for _ in range(handSize):
+            for player in self.players:
+                player.drawCard(self.deck.draw())
+        for player in self.players:
+            self._announceBooks(player, player.collectSets())
 
 
-    def manageTurn(self):
-        pass
+    def _announceBooks(self, player, books):
+        for rank in books:
+            print(f"{player.name} completed a book of {rank}s!\n")
+
+    def isGameOver(self):
+        return bool(self.players) and not self.deck.drawPile and not any(
+            player.hasCards() for player in self.players)
+
+    def manageTurn(self, player):
+        """Resolve one request and any fishing, then end the turn."""
+        if not self.isGameOver():
+            if not player.hasCards():
+                if not self.deck.drawPile:
+                    return
+                player.drawCard(self.deck.draw(player.goFish(len(self.deck.drawPile))))
+                books = player.collectSets()
+                self.gameLog.append({"type": "draw", "asker": player.name,
+                                     "drew": True, "books": books})
+                print(f"{player.name} drew a card to refill their empty hand.\n")
+                self._announceBooks(player, books)
+
+            opponents = {other.name: other for other in self.players
+                         if other is not player and other.hasCards()}
+            if not opponents:
+                # Any remaining cards must complete this player's books.
+                # Drain the pool without attempting an illegal request.
+                while self.deck.drawPile:
+                    player.drawCard(self.deck.draw(player.goFish(len(self.deck.drawPile))))
+                    books = player.collectSets()
+                    self.gameLog.append({"type": "draw", "asker": player.name,
+                                         "drew": True, "books": books})
+                    self._announceBooks(player, books)
+                return
+
+            if isinstance(player, HumGoFishPlayer):
+                rank, targetName = player.makeChoice(list(opponents))
+            else:
+                memoryLength = player.DIFFICULTIES[player.difficulty][0]
+                # Pass names, never opponent objects or private hands.
+                rank, targetName = player.makeChoice(list(opponents),
+                                                     self.gameLog[-memoryLength:])
+            if rank not in player.hand or not player.hand[rank] or targetName not in opponents:
+                raise ValueError("Players must ask an eligible opponent for a rank they hold.")
+            print(f"{player.name} asks {targetName} for {rank}s.\n")
+            received = opponents[targetName].giveSet(rank)
+            drew = False
+            drawnMatch = False
+            if received:
+                for card in received:
+                    player.drawCard(card)
+                print(f"{targetName} gives {player.name} {len(received)} card(s).\n")
+            else:
+                print("Go fish!\n")
+                if self.deck.drawPile:
+                    card = self.deck.draw(player.goFish(len(self.deck.drawPile)))
+                    player.drawCard(card)
+                    drew = True
+                    drawnMatch = card.rank == rank
+                    if isinstance(player, HumGoFishPlayer):
+                        print(f"You drew {card}.\n")
+                    elif drawnMatch:
+                        print(f"{player.name} fished the requested rank!\n")
+                else:
+                    print("The pool is empty.\n")
+
+            books = player.collectSets()
+            self._announceBooks(player, books)
+            # Deliberately omit the rank of a private, nonmatching draw.
+            self.gameLog.append({"type": "ask", "asker": player.name,
+                                 "target": targetName, "rank": rank,
+                                 "received": len(received), "drew": drew,
+                                 "drawnMatch": drawnMatch, "books": books})
 
 
     def determineWinner(self):
-        pass
+        if not self.players:
+            return []
+        highScore = max(len(player.sets) for player in self.players)
+        winners = [player for player in self.players if len(player.sets) == highScore]
+        for player in self.players:
+            print(f"{player.name}: {len(player.sets)} book(s)\n")
+        names = ", ".join(player.name for player in winners)
+        print(f"{names} {'wins' if len(winners) == 1 else 'tie'} with {highScore} book(s)!\n")
+        return winners
 
 
     def promptNextGame(self):
-        pass
+        while True:
+            choice = input("Play another game of Go Fish? (y/n)\n\n --> ").strip().lower()
+            if choice in ["y", "yes"]:
+                return True
+            if choice in ["n", "no", "quit", "exit", "return"]:
+                return False
+            print("Please answer yes or no.\n")
 
 
     def playGame(self):
-        pass
+        playerName = input("What is your name?\n\n --> ")
+        self.resetGame(playerName)
+        print("Collect books of four. Ask for a rank you hold. Most books wins!\n")
+        print("Each turn ends after one request and any fishing, even if you get the requested rank.\n")
+        while not self.isGameOver():
+            for player in self.players:
+                if self.isGameOver():
+                    break
+                self.manageTurn(player)
+        self.determineWinner()
+        return self.promptNextGame()
