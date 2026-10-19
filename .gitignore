@@ -1,2 +1,6 @@
 __pycache__/
 *.py[cod]
+savegame.json
+savegame.tmp
+screenshots/
+.venv/

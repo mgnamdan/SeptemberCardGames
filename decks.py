@@ -1,45 +1,34 @@
-from cards import Card
+"""A shuffled deck shared by the table managers."""
 import random
+from cards import Card, RANKS, SUITS
+
 
 class Deck:
-
-    RANKS = ["Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Jack", "Queen", "King", "Ace"]
-    SUITS = ["Clubs", "Hearts", "Spades", "Diamonds"]
-
+    RANKS = RANKS
+    SUITS = SUITS
 
     def __init__(self):
         self.reset()
 
-
-    def __str__(self):
-        return "\n".join(str(card) for card in self.drawPile)
-
-
     def reset(self):
-        self.drawPile = []
+        self.drawPile = [Card(rank, suit) for suit in SUITS for rank in RANKS]
         self.discardPile = []
         self.outPile = []
-
-        for suit in self.SUITS:
-            for rank in self.RANKS:
-                newCard = Card(rank, suit)
-                self.drawPile.append(newCard)
-
-        for _ in range(random.randint(5, 7)):
-            self.shuffle()
-
+        self.shuffle()
 
     def draw(self, drawIdx=0):
-        toGive = self.drawPile.pop(drawIdx)
-        self.outPile.append(toGive)
-        return toGive
-
-
-    def discard(self, toDiscard):
-        if toDiscard in self.outPile:
-            self.outPile.remove(toDiscard)
-            self.discardPile.append(toDiscard)
-
+        if not self.drawPile:
+            raise ValueError("The deck is empty")
+        card = self.drawPile.pop(drawIdx)
+        self.outPile.append(card)
+        return card
 
     def shuffle(self):
         random.shuffle(self.drawPile)
+
+    def discard(self, card):
+        self.outPile.remove(card)
+        self.discardPile.append(card)
+
+    def __len__(self):
+        return len(self.drawPile)

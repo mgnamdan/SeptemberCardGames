@@ -1,197 +1,154 @@
-import contextlib
-import io
+"""Rules and memory regressions for the event-driven Go Fish table."""
 import random
 import unittest
 from unittest.mock import patch
-
 from cards import Card
 from managers import GoFishManager
-from players import CompGoFishPlayer, HumGoFishPlayer
+from players import CompGoFishPlayer
 
 
-def event(asker, target, rank, received=0, drew=False, drawnMatch=False, books=()):
-    return {"type": "ask", "asker": asker, "target": target, "rank": rank,
-            "received": received, "drew": drew, "drawnMatch": drawnMatch,
-            "books": list(books)}
+def event(asker, target, rank, books=()):
+    return dict(type='ask', asker=asker, target=target, rank=rank,
+                received=0, drew=False, drawnMatch=False, books=list(books))
 
 
 class GoFishTests(unittest.TestCase):
     def setUp(self):
-        self.randomState = random.getstate()
+        self.state = random.getstate()
         random.seed(23)
-        self.output = contextlib.redirect_stdout(io.StringIO())
-        self.output.__enter__()
 
     def tearDown(self):
-        self.output.__exit__(None, None, None)
-        random.setstate(self.randomState)
+        random.setstate(self.state)
 
-    def player(self, name, ranks=(), difficulty="hard"):
+    def player(self, name, ranks=(), difficulty='hard'):
         player = CompGoFishPlayer(name, difficulty)
         for rank in ranks:
             player.drawCard(Card(rank))
         return player
 
-    def manager(self, players, pool=()):
-        manager = GoFishManager()
-        manager.players = players
+    def table(self, a, b, pool=()):
+        manager = GoFishManager(num_comps=1)
+        manager.players = [a, b]
         manager.deck.drawPile = list(pool)
+        manager.gameLog = []
+        manager.current = 0
+        manager._prepare()
         return manager
 
-    def test_books_need_four_and_leave_hand(self):
-        player = self.player("A", ["Ace"] * 3)
-        self.assertEqual(player.collectSets(), [])
-        player.drawCard(Card("Ace", "Hearts"))
-        self.assertEqual(player.collectSets(), ["Ace"])
-        self.assertFalse(player.hasCards())
-        self.assertEqual(len(player.sets["Ace"]), 4)
-        self.assertEqual(player.collectSets(), [])
+    def test_transfer_ends_turn_and_collects_book(self):
+        a, b = self.player('A', ['Ace']), self.player('B', ['Ace'] * 3 + ['King'])
+        game = self.table(a, b)
+        game.ask('Ace', 'B')
+        self.assertEqual(game.current, 1)
+        self.assertEqual(game.gameLog[-1]['received'], 3)
+        self.assertEqual(len(a.sets['Ace']), 4)
+        self.assertFalse(a.hasCards())
 
-    @patch("players.random.random", return_value=1)
-    def test_memory_tracks_transfer_and_book(self, _):
-        player = self.player("A", ["Ace", "King"])
-        log = [event("B", "C", "Ace"), event("C", "B", "Ace", received=1)]
-        self.assertEqual(player.makeChoice(["B", "C"], log), ["Ace", "C"])
-        log.append(event("C", "B", "Ace", received=1, books=["Ace"]))
-        self.assertEqual(player.makeChoice(["B", "C"], log)[0], "King")
+    def test_matching_and_nonmatching_fish_both_end_turn(self):
+        for rank in ('Ace', 'Two'):
+            with self.subTest(rank=rank):
+                game = self.table(self.player('A', ['Ace']), self.player('B', ['King']), [Card(rank), Card('Three')])
+                game.ask('Ace', 'B')
+                self.assertEqual(game.phase, 'fish')
+                self.assertEqual(game.current, 0)
+                game.fish(0)
+                self.assertEqual(game.current, 1)
+                self.assertEqual(len(game.deck), 1)
+                self.assertEqual(game.gameLog[-1]['drawnMatch'], rank == 'Ace')
+                self.assertNotIn('Two', str(game.gameLog))
 
-    @patch("players.random.random", return_value=1)
-    def test_draw_invalidates_old_negative_evidence(self, _):
-        player = self.player("A", ["Ace", "Ace", "King"])
-        log = [event("C", "B", "Ace"),
-               {"type": "draw", "asker": "B", "drew": True, "books": []}]
-        self.assertEqual(player.makeChoice(["B"], log), ["Ace", "B"])
+    def test_refill_then_ask_and_empty_deck_skip(self):
+        game = self.table(self.player('A'), self.player('B', ['King']), [Card('Ace')])
+        self.assertEqual(game.phase, 'refill')
+        game.fish()
+        self.assertEqual((game.current, game.phase), (0, 'ask'))
+        game.player.giveSet('Ace')
+        game._prepare()
+        self.assertEqual(game.phase, 'skip')
+        game.step()
+        self.assertEqual(game.current, 1)
 
-    @patch("players.random.random", return_value=1)
-    def test_easy_forgets_evidence_hard_remembers(self, _):
-        log = [event("B", "C", "Ace")]
-        log.extend(event("C", "B", "Two") for _ in range(4))
-        easy = self.player("A", ["Ace", "King", "King"], "easy")
-        hard = self.player("A", ["Ace", "King", "King"], "hard")
-        self.assertEqual(easy.makeChoice(["B"], log)[0], "King")
-        self.assertEqual(hard.makeChoice(["B"], log)[0], "Ace")
-
-    @patch("players.random.random", return_value=0)
-    @patch("players.random.choice", side_effect=lambda choices: choices[-1])
-    def test_hard_can_ignore_known_good_request(self, *_):
-        player = self.player("A", ["Ace"])
-        self.assertEqual(player.makeChoice(["B", "C"], [event("B", "C", "Ace")]),
-                         ["Ace", "C"])
-
-    def test_successful_request_transfers_all_cards_and_ends_turn(self):
-        a = self.player("A", ["Ace", "King"])
-        b = self.player("B", ["Ace", "Ace", "Two"])
-        manager = self.manager([a, b])
-        with patch.object(a, "makeChoice", return_value=["Ace", "B"]) as choose:
-            manager.manageTurn(a)
-        choose.assert_called_once()
-        self.assertEqual(len(a.hand["Ace"]), 3)
-        self.assertEqual(b.hand["Ace"], [])
-        self.assertEqual([entry["received"] for entry in manager.gameLog], [2])
-
-    def test_fishing_always_ends_turn_and_private_draw_stays_private(self):
-        for drawnRank in ["Ace", "Two"]:
-            with self.subTest(drawnRank=drawnRank):
-                a, b = self.player("A", ["Ace"]), self.player("B", ["King"])
-                manager = self.manager([a, b], [Card(drawnRank), Card("Three")])
-                with patch.object(a, "makeChoice", return_value=["Ace", "B"]) as choose, \
-                        patch.object(a, "goFish", return_value=0) as fish:
-                    manager.manageTurn(a)
-                choose.assert_called_once()
-                fish.assert_called_once()
-                self.assertEqual(len(manager.deck.drawPile), 1)
-                self.assertEqual(len(a.hand[drawnRank]), 2 if drawnRank == "Ace" else 1)
-                self.assertEqual([entry["drawnMatch"] for entry in manager.gameLog],
-                                 [drawnRank == "Ace"])
-                self.assertNotIn("Two", str(manager.gameLog))
-
-    def test_refill_and_empty_pool_skip(self):
-        a, b = self.player("A"), self.player("B", ["King"])
-        manager = self.manager([a, b], [Card("Ace")])
-        manager.manageTurn(a)
-        self.assertEqual(manager.gameLog[0]["type"], "draw")
-        a.giveSet("Ace")
-        with patch.object(a, "makeChoice") as choose:
-            manager.manageTurn(a)
-        choose.assert_not_called()
-
-    def test_single_remaining_player_finishes_books(self):
-        a, b = self.player("A", ["Ace"] * 3), self.player("B")
-        manager = self.manager([a, b], [Card("Ace")])
-        manager.manageTurn(a)
-        self.assertTrue(manager.isGameOver())
-        self.assertEqual(manager.determineWinner(), [a])
-        b.sets["King"] = [Card("King")] * 4
-        self.assertEqual(manager.determineWinner(), [a, b])
-
-    def test_fishing_indices_and_human_name_matching(self):
-        player = self.player("A")
-        for size in range(1, 53):
-            for _ in range(10):
-                self.assertIn(player.goFish(size), range(size))
+    def test_illegal_actions_are_rejected_without_mutation(self):
+        game = self.table(self.player('A', ['Ace']), self.player('B', ['King']))
+        for rank, target in [('King', 'B'), ('Ace', 'A'), ('Ace', 'Nobody')]:
+            with self.assertRaises(ValueError):
+                game.ask(rank, target)
         with self.assertRaises(ValueError):
-            player.goFish(0)
-        human = HumGoFishPlayer("Human")
-        human.drawCard(Card("Ace"))
-        with patch("builtins.input", side_effect=["two", " ace ", "bad", " mCDoNALD "]):
-            self.assertEqual(human.makeChoice(["McDonald"]), ["Ace", "McDonald"])
-        with patch("builtins.input", return_value="center"):
-            self.assertEqual(human.goFish(1), 0)
+            game.fish()
+        self.assertEqual(game.gameLog, [])
+        self.assertEqual(game.current, 0)
 
-    def test_reset_deal_validation_and_replay(self):
-        manager = GoFishManager()
-        with patch("builtins.input", side_effect=["bad", "0", "5", "1", "bad", "HARD"]):
-            manager.resetGame("alex")
-        self.assertEqual(len(manager.deck.drawPile), 38)
-        self.assertNotEqual(manager.players[1].name.casefold(), "alex")
-        manager.gameLog.append({"old": True})
-        manager.players[0].sets["Ace"] = []
-        manager.resetGame("Player", 4, "easy")
-        self.assertEqual(len(manager.deck.drawPile), 27)
-        self.assertEqual(manager.gameLog, [])
-        self.assertEqual(sum(len(p.sets) for p in manager.players), 0)
-        with patch("builtins.input", side_effect=["bad", "YES", "no"]):
-            self.assertTrue(manager.promptNextGame())
-            self.assertFalse(manager.promptNextGame())
+    @patch('players.random.random', return_value=1)
+    def test_memory_tracks_transfers_books_and_private_draws(self, _):
+        player = self.player('A', ['Ace', 'King'])
+        log = [event('B', 'C', 'Ace'), event('C', 'B', 'Ace')]
+        self.assertEqual(player.makeChoice(['B', 'C'], log), ['Ace', 'C'])
+        log.append(event('C', 'B', 'Ace', books=['Ace']))
+        self.assertEqual(player.makeChoice(['B', 'C'], log)[0], 'King')
+        player.drawCard(Card('Ace'))
+        log = [event('C', 'B', 'Ace'), dict(type='draw', asker='B', drew=True, books=[])]
+        self.assertEqual(player.makeChoice(['B'], log), ['Ace', 'B'])
 
-    def test_manager_limits_memory_given_to_computer(self):
-        a, b = self.player("A", ["Ace"], "easy"), self.player("B", ["King"])
-        manager = self.manager([a, b])
-        manager.gameLog = [event("B", "A", "King") for _ in range(20)]
-        with patch.object(a, "makeChoice", return_value=["Ace", "B"]) as choose:
-            manager.manageTurn(a)
-        self.assertEqual(choose.call_args.args[0], ["B"])
+    @patch('players.random.random', return_value=1)
+    def test_easy_forgets_hard_remembers(self, _):
+        log = [event('B', 'C', 'Ace')] + [event('C', 'B', 'Two')] * 4
+        for difficulty, expected in [('easy', 'King'), ('hard', 'Ace')]:
+            player = self.player('A', ['Ace', 'King', 'King'], difficulty)
+            self.assertEqual(player.makeChoice(['B'], log)[0], expected)
+
+    @patch('players.random.random', return_value=0)
+    @patch('players.random.choice', side_effect=lambda options: options[-1])
+    def test_even_hard_can_choose_wrong_opponent(self, *_):
+        player = self.player('A', ['Ace'])
+        self.assertEqual(player.makeChoice(['B', 'C'], [event('B', 'C', 'Ace')]), ['Ace', 'C'])
+
+    def test_manager_only_shares_limited_log_and_names(self):
+        game = self.table(self.player('A', ['King']), self.player('B', ['Ace'], 'easy'))
+        game.current = 1
+        game.gameLog = [event('A', 'B', 'King')] * 20
+        with patch.object(game.player, 'makeChoice', return_value=['Ace', 'A']) as choose:
+            game.step()
+        self.assertEqual(choose.call_args.args[0], ['A'])
         self.assertEqual(len(choose.call_args.args[1]), 4)
 
-    def test_complete_games_conserve_all_cards(self):
-        for seed in range(60):
+    def test_computer_draw_rank_stays_private(self):
+        game = self.table(self.player('A', ['King']), self.player('B', ['Ace']), [Card('Two')])
+        game.current = 1
+        game.ask('Ace', 'A')
+        game.fish()
+        self.assertNotIn('Two', str(game.gameLog))
+        self.assertNotIn('Two', str(game.messages))
+
+    def test_fishing_indices(self):
+        player = self.player('A')
+        for size in range(1, 53):
+            self.assertIn(player.goFish(size), range(size))
+        with self.assertRaises(ValueError):
+            player.goFish(0)
+
+    def test_complete_games_conserve_52_cards(self):
+        for seed in range(120):
             random.seed(seed)
-            manager = GoFishManager()
-            manager.resetGame("Human", 1 + seed % 4, ["easy", "medium", "hard"][seed % 3])
-            human = manager.players[0]
-            replacement = self.player(human.name, difficulty=manager.players[1].difficulty)
-            replacement.hand, replacement.sets = human.hand, human.sets
-            manager.players[0] = replacement
-            for turn in range(3000):
-                if manager.isGameOver():
+            game = GoFishManager(num_comps=1 + seed % 4, difficulty=['easy', 'medium', 'hard'][seed % 3])
+            for _ in range(4000):
+                if game.finished:
                     break
-                manager.manageTurn(manager.players[turn % len(manager.players)])
-                cards = list(manager.deck.drawPile)
-                for player in manager.players:
-                    cards.extend(card for hand in player.hand.values() for card in hand)
-                    cards.extend(card for book in player.sets.values() for card in book)
+                if game.current == 0 and game.phase == 'ask':
+                    rank, name = game.player.makeChoice([p.name for p in game.opponents], game.gameLog)
+                    game.ask(rank, name)
+                elif game.current == 0 and game.phase in ('fish', 'refill'):
+                    game.fish()
+                else:
+                    game.step()
+                cards = list(game.deck.drawPile)
+                for player in game.players:
+                    cards += [card for group in player.hand.values() for card in group]
+                    cards += [card for group in player.sets.values() for card in group]
                 self.assertEqual(len(cards), 52)
-                self.assertEqual(len({(card.rank, card.suit) for card in cards}), 52)
-            self.assertTrue(manager.isGameOver(), f"Seed {seed} did not finish")
-            self.assertEqual(sum(len(p.sets) for p in manager.players), 13)
-
-    def test_menu_dispatches_go_fish_and_replay(self):
-        import main
-        with patch("builtins.input", side_effect=["2", "q"]), \
-                patch.object(main.GoFishManager, "playGame", side_effect=[True, False]) as play:
-            main.main()
-        self.assertEqual(play.call_count, 2)
+                self.assertEqual(len(set(cards)), 52)
+            self.assertTrue(game.finished, f'Seed {seed} did not finish')
+            self.assertEqual(sum(len(p.sets) for p in game.players), 13)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()
